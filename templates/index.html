@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Selector</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="icon" href="../static/logo.png" type="image/icon type">
+    <style>
+
+        html {
+            backdrop-filter: blur(10px);
+        }
+
+        body {
+            background-image: url('../static/background.jpg');
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        .card {
+            border-radius: 15px;
+            transition: transform 0.5s;
+        }
+
+        .hidden {
+            display: none; /* Changed from transform for layout purposes */
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            margin: 0;
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto;
+            max-width: 200px; /* Adjust the size as needed */
+            height: auto;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <img src="static/logo.png" alt="One Click Meal Logo" class="logo mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 mb-3">
+            <div class="card p-4">
+                <h2 class="card-title text-center h2 mb-4">Meal Conditions</h2>
+                <form method="post">
+                    <div class="form-group">
+                        <label for="mealCount">I want to eat:</label>
+                        <select class="form-control" id="mealCount" name="mealCount">
+                            <option value="1" {% if meal_count == 1 %}selected{% endif %}>1 Meal</option>
+                            <option value="2" {% if meal_count == 2 %}selected{% endif %}>2 Meals</option>
+                            <option value="3" {% if meal_count == 3 %}selected{% endif %}>3 Meals</option>
+                            <option value="4" {% if meal_count == 4 %}selected{% endif %}>4 Meals</option>
+                            <option value="5" {% if meal_count == 5 %}selected{% endif %}>5 Meals</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="calories">Calories:</label>
+                        <input type="number" class="form-control" id="calories" name="calories"
+                               value="{{ calories }}"
+                               min="0" placeholder="Enter desired calories" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="protein">Protein (grams):</label>
+                        <input type="number" class="form-control" id="protein" name="protein"
+                               value="{{ protein }}"
+                               min="0" placeholder="Enter desired protein" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block mt-4">Generate Meals</button>
+                </form>
+                {% if error %}
+                    <div class="alert alert-danger mt-4">{{ error }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6 {{ 'hidden' if not meals }}">
+            <div class="card p-4 ">
+                <h2 class="card-title h2 text-center mb-4">Your Meal Plan</h2>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Details</th>
+                        <th>Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for i in range(0, meals|length, 2) %}
+                        <tr>
+                            <td>
+                                <div><strong>{{ meals[i].name }}</strong> - {{ meals[i].calories }}
+                                    calories, {{ meals[i].protein | round(2) }}g protein. <a
+                                            href="{{ meals[i].recipe_link }}"
+                                            target="_blank">View Recipe</a></div>
+                                {% if meals[i+1] %}
+                                    <div><strong>{{ meals[i+1].name }}</strong> - {{ meals[i+1].calories }}
+                                        calories,
+                                        {{ meals[i+1].protein | round(2) }}g protein. <a
+                                                href="{{ meals[i+1].recipe_link }}"
+                                                target="_blank">View Recipe</a></div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strongh>
+                                    {{ (meals[i].calories + (meals[i+1].calories if meals[i+1] else 0)) | round(2)}}<i/strongh>
+                                    calories<br>
+                                    <strong>
+                                        {{ (meals[i].protein + (meals[i+1].protein if meals[i+1] else 0)) | round(2)}}g</strong>
+                                    protein
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div class="alert alert-info" role="alert">
+                    This meal plan provides a total of <strong>{{ total_calories }}
+                    calories</strong> and <strong>{{ total_protein }} grams of protein</strong>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    window.onload = function () {
+        const mealCard = document.getElementById('mealCard');
+        if (mealCard.querySelector('tbody').children.length > 0) {
+            mealCard.classList.remove('hidden');
+        }
+    };
+</script>
+</body>
+</html>
