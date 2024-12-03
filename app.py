@@ -1,28 +1,25 @@
 from flask import Flask, render_template, request
 import pandas as pd
 import random
+from flask import jsonify
 
 
 class Dish:
-    def __init__(self, id, name, calories, protein, link):
+    def __init__(self, id, name, calories, protein):
         self.id = id
         self.name = name
         self.calories = calories
         self.protein = protein
-        self.link = link
+
 
 
 # %%
-
+recipes = pd.read_csv('data/recipes.csv')
 item_list = []
-with open("data/food_data.txt", "r") as f:
-    for line in f:
-        new_line = line.strip()
-        new_line = new_line.split(",")
-        id, n, c, p = new_line[0], new_line[1], new_line[2], new_line[3]
-        l = new_line[4] + ',' + new_line[5]
-        new_dish = Dish(int(id), str(n), float(c), float(p), str(l))
-        item_list.append(new_dish)
+for index, row in recipes.iterrows():
+    id, n, c, p = row['id'], row['name'], row['calories'], row['protein']
+    new_dish = Dish(int(id), str(n), float(c), float(p))
+    item_list.append(new_dish)
 
 
 # %%
@@ -70,7 +67,7 @@ def get_dishes(i_list, s_list):
                 "name": i_list[i].name,
                 "calories": i_list[i].calories,
                 "protein": i_list[i].protein,
-                "recipe_link": i_list[i].link
+                "id": i_list[i].id
             }
             dishes.append(dish)
     return dishes
@@ -236,12 +233,16 @@ def meal_planner(pop_size, g_size, mut_rate, item_list, test1, test2, dish_num):
 app = Flask(__name__)
 
 
-@app.route('/', methods=['GET', 'POST'])
+from flask import jsonify, render_template
+
+from flask import jsonify, render_template, request
+
+@app.route('/', methods=['POST'])
 def index():
     if request.method == 'POST':
-        meal_count = int(request.form['mealCount'])
-        calories = float(request.form['calories'])
-        protein = float(request.form['protein'])
+        meal_count = int(request.json['mealCount'])  # Expect JSON body
+        calories = float(request.json['calories'])
+        protein = float(request.json['protein'])
 
         df = meal_planner(pop_size=100, g_size=100, mut_rate=0.01, item_list=item_list,
                           test1=calories, test2=protein, dish_num=meal_count * 2)
@@ -251,18 +252,45 @@ def index():
             total_calories = round(total_calories, 2)
             total_protein = sum(df.to_dict()['protein'].values())
             total_protein = round(total_protein, 2)
+
+            # Round the calories and protein values in the dataframe
             for i in df.to_dict()['calories'].values():
                 round(i, 2)
 
             for i in df.to_dict()['protein'].values():
                 round(i, 2)
 
-            return render_template('index.html', meals=df.to_dict('records'), meal_count=meal_count, calories=calories,
-                                   protein=protein, total_calories=total_calories, total_protein=total_protein)
-        else:
-            return render_template('index.html', error="No meals found for the given preferences.")
+            # Split the recipes into meals (groups of 2 recipes)
+            meals = df.to_dict('records')
+            meal_list = []
 
-    return render_template('index.html')
+            for i in range(0, len(meals), 2):
+                meal = meals[i:i + 2]
+                meal_total_calories = sum(m['calories'] for m in meal)
+                meal_total_protein = sum(m['protein'] for m in meal)
+
+                meal_list.append({
+                    'recipes': meal,
+                    'total_calories': round(meal_total_calories, 2),
+                    'total_protein': round(meal_total_protein, 2)
+                })
+
+            # Return JSON response with meals and calculated totals
+            return jsonify({
+                'meals': meal_list,
+                'total_calories': total_calories,
+                'total_protein': total_protein
+            })
+        else:
+            return jsonify({
+                'error': "No meals found for the given preferences."
+            }), 400
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
